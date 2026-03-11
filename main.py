@@ -9,7 +9,7 @@ root.geometry("600x400")
 
 # Function: call backend and API from earthquakedata.py
 
-def call_data_search(closest=5):
+def call_data_search():
     location_area = entry_1.get()
     date_earth = entry_2.get()
     magnitude = entry_3.get()
@@ -19,29 +19,27 @@ def call_data_search(closest=5):
         return
 
     
-    if location_area and date_earth and magnitude:
-        try:
-            val = float(magnitude)
-        except ValueError:
-            return "Improper value"
+    coords = earthquakedata.coords_to_location(location_area)
+    if coords is None:
+        messagebox.showerror("Error")
+        return
 
-    close = min(options, key=lambda x: abs(x - val))
+    lat, lon = coords
+    result, is_fallback = earthquakedata.real_location(lat, lon, date_earth, magnitude)
 
-    if abs(closest - val) <= threshold:
-        return closest
-    else:
-        return earthquakedata
+    if is_fallback:
+        print("Could not find exact earthquake based off your information, here are the closest results")
 
-        
+    features = result["features"]
+    for ed in features:
+        place =  ed["properties"]["place"]
+        mag = ed["properties"]["mag"]
+        time = ed["properties"]["time"]
+        listbox.insert(tk.END,  f"M{mag} - {place}")
 
-    result_from_main = earthquakedata.coords_to_location(location_area)
-
-    if result_from_main is None:
-        messagebox.showwarning("Not Found")
-
-    lat, lon = result_from_main
-    result = earthquakedata.real_location(lat, lon)
+    
     print(result)
+
 
 
     
@@ -73,6 +71,12 @@ label_3.place(x=540, y=180)
 
 entry_3 = tk.Entry(root, width=30, bg=("blue"))
 entry_3.place(x=540, y=220)
+
+listbox = tk.Listbox(root, width=50,height=10)
+listbox.place(x=50, y=20)
+
+
+
 
 
 root.mainloop()

@@ -17,7 +17,7 @@ def coords_to_location(place, closest=5):
     )
     data = response.json()
 
-    if  data:
+    if not data:
         print("Not found")
         return None
 
@@ -27,7 +27,7 @@ def coords_to_location(place, closest=5):
     print(f"Lat: {lat}, Lon: {lon}")
     return lat, lon
 
-def real_location(lat, lon):
+def real_location(lat, lon, date, magnitude):
 
 
     
@@ -44,7 +44,7 @@ def real_location(lat, lon):
         return None
 
    
-    return data_2
+    return data_2, False
 
 
 
