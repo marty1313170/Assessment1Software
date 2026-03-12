@@ -2,6 +2,7 @@ import requests
 
 BASE_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
 
+
 OPEN_MAP = "https://nominatim.openstreetmap.org/search?q={place}&format=json&limit=1"
 
 head = {'User-Agent' : "school"}
@@ -27,16 +28,21 @@ def coords_to_location(place, closest=5):
     print(f"Lat: {lat}, Lon: {lon}")
     return lat, lon
 
+
+
 def real_location(lat, lon, date, magnitude):
 
+    if magnitude == "":
+       decide = 10
+    else:
+       decide = 1
 
-    
+
     response_2 = requests.get(
         BASE_URL,
-        params={"latitude": lat, "longitude": lon,  "format": "geojson" , "limit" : 1, "maxradiuskm" : 100,}
+        params={"latitude": lat, "longitude": lon,  "format": "geojson" , "limit" : decide, "maxradiuskm" : 500,}
     )
-
-    
+   
     data_2 = response_2.json()
 
     if not data_2:

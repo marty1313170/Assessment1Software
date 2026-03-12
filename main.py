@@ -2,14 +2,18 @@ import tkinter as tk
 from tkcalendar import DateEntry
 import earthquakedata
 from tkinter import messagebox
+from datetime import datetime, timezone
 
 root = tk.Tk()
 root.title("Earthquake lookup")
 root.geometry("600x400")
 
+closest_result = 0.3
+
 # Function: call backend and API from earthquakedata.py
 
-def call_data_search():
+def call_data_search(closest_result = 0.3, time_closest = 86400000):
+    listbox.delete(0, tk.END)
     location_area = entry_1.get()
     date_earth = entry_2.get()
     magnitude = entry_3.get()
@@ -17,32 +21,55 @@ def call_data_search():
     if not location_area:
         messagebox.showwarning("Missing information, will not continue")
         return
+    if magnitude and date_earth == "":
+        earthquakedata.coords_to_location(location_area)
+        return 
+
 
     
     coords = earthquakedata.coords_to_location(location_area)
     if coords is None:
         messagebox.showerror("Error")
         return
-
+    
     lat, lon = coords
     result, is_fallback = earthquakedata.real_location(lat, lon, date_earth, magnitude)
 
-    if is_fallback:
-        print("Could not find exact earthquake based off your information, here are the closest results")
+    if date_earth:
+       date_ms = datetime.strptime(date_earth, "%d-%m-%Y").replace(tzinfo=timezone.utc).timestamp() * 1000
+    else:
+       date_ms = None
+
+    
+    
+    
 
     features = result["features"]
+    exact_area = any(location_area.lower() in ed ["properties"]["place"].lower() for ed in features)
+    if not exact_area:
+        listbox.insert(0, "Could not find earthquake in exact location here are the closest ones!")
     for ed in features:
         place =  ed["properties"]["place"]
         mag = ed["properties"]["mag"]
         time = ed["properties"]["time"]
-        listbox.insert(tk.END,  f"M{mag} - {place}")
+        if date_ms and abs(time - date_ms) < time_closest:
+           listbox.insert(tk.END, f"M{mag} - {place} (matched result)")
+        elif magnitude and date_earth == "":
+             print(result)  
+             listbox.insert(tk.END, f"M{mag} - {place} (newest result)")
+        elif magnitude and abs (float(magnitude) - float (mag)) < closest_result:
+             listbox.insert(tk.END, f"M{mag} - {place} (newest result)")
+        elif magnitude and date_earth == "":
+            print(result)
+        else:
+            listbox.insert(tk.END, f"M{mag} - {place}")
+        
+        
 
     
     print(result)
 
 
-
-    
 
 
 # Below are Visual Widgets 
