@@ -4,6 +4,7 @@ import earthquakedata
 from tkinter import messagebox
 from datetime import datetime, timezone, timedelta
 from textblob import TextBlob # Checks spelling of user
+import pandas as pd
 
 root = tk.Tk()
 root.title("Earthquake lookup")
@@ -13,7 +14,15 @@ closest_result = 0.3
 
 # Function: call backend and API from earthquakedata.py
 
+search_history = pd.DataFrame(columns=["location", "date", "magnitude"])
+results_history = pd.DataFrame(columns=["location", "magnitude", "place", "time"])
+
+
+
 def call_data_search(closest_result = 0.3, time_closest = 86400000):
+
+    global search_history
+    global results_history
     listbox.delete(0, tk.END)
 
     uncleaned_search = entry_1.get()
@@ -29,13 +38,12 @@ def call_data_search(closest_result = 0.3, time_closest = 86400000):
 
     date_earth = entry_2.get()
     magnitude = entry_3.get()
-
+    
+    new_row = pd.DataFrame([{"location": location_area, "date": date_earth, "magnitude": magnitude}])
+    search_history = pd.concat([search_history, new_row], ignore_index=True)
     if not location_area:
         messagebox.showwarning("Missing information", "Please add location for a vaild search") # If even location is missing, will not continue
         return
-    if magnitude and date_earth == "": # If magnitude and date_earth is missing still continue
-        earthquakedata.coords_to_location(location_area)
-        return 
 
     coords = earthquakedata.coords_to_location(location_area)
     if coords is None:
@@ -57,28 +65,33 @@ def call_data_search(closest_result = 0.3, time_closest = 86400000):
     result, is_fallback = earthquakedata.real_location(lat, lon, date_earth, magnitude, start, end)
 
     
+    
+
+
+    
 
     
     
     
 
     features = result["features"]
+    if not features:
+        listbox.insert(tk.END, "No earthquakes found for this search")
+        return
     exact_area = any(location_area.lower() in ed ["properties"]["place"].lower() for ed in features)
     found_match = False
     for ed in features:
         place =  ed["properties"]["place"]
         mag = ed["properties"]["mag"]
         time = ed["properties"]["time"]
+        new_result = pd.DataFrame([{"location": location_area, "magnitude": mag, "place": place, "time": time}])
+        results_history = pd.concat([results_history, new_result], ignore_index=True)
         if date_ms and abs(time - date_ms) < time_closest:
            found_match = True
-           listbox.insert(tk.END, f"M{mag} - {place} (closest result)") # It found an exact location 
-        elif magnitude and date_earth == "":
-             print(result)  
-             listbox.insert(tk.END, f"M{mag} - {place} (newest result)") # Newest earthquake
-        elif magnitude and abs (float(magnitude) - float (mag)) < closest_result:
-             listbox.insert(tk.END, f"M{mag} - {place} (newest result)")
-        elif magnitude and date_earth == "":
-            print(result) 
+           listbox.insert(tk.END, f"M{mag} - {place} (closest result)") # It found an exact location
+        elif magnitude and abs(float(magnitude) - float(mag)) < closest_result:
+             found_match = True
+             listbox.insert(tk.END, f"M{mag} - {place} (magnitude match)")
         else:
             listbox.insert(tk.END, f"M{mag} - {place}")
 
@@ -88,7 +101,8 @@ def call_data_search(closest_result = 0.3, time_closest = 86400000):
         listbox.insert(0, "Could not find earthquake in exact location ") # If fails to find that specific of a earthquake then just finds a earthquake 500km within input location
         listbox.insert(1, "here are the closest ones")
 
-    print(result)   
+    search_history.to_csv("search_history.csv", index=False)
+    results_history.to_csv("results_history.csv", index=False)
 
 
 
